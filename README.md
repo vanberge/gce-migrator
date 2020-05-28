@@ -11,11 +11,13 @@ Make sure you know the source project, destination project, and which network yo
 Clone the repository, and make sure you install the Google cloud SDK (or, run the script from CloudShell).
 If running outside of cloud shell, authenticate by running "gcloud auth login" 
 
-Use format ./gce-migrate.sh <sourceproject> <destproject> <network> <migration-type>
-    sourceproject: The project where VM currently lives
-    destproject: The project where VM will reside after migration
-    network: The desired network for the new VM to be connected to (Must be accessible by the destination project)
-    migration-type: Must be 'bulk', 'list', or a 'single' - Bulk migrates all VMs in a project, list will prompt for a text file listing, and single will request a VM name
+Use format ./gce-migrate.sh <sourceproject ID> <destproject ID> <network> <migration-type>
+    sourceproject id: The project where VM currently lives
+    destproject id: The project where VM will reside after migration
+    network: The desired network for the new VM to be connected to (Must be accessible by the destination project).  Alternatively, use "static" to keep the source VMs IP info (which requires a shared VPC)
+             NOTE:  setting the network "static" means that you have to delete the source VM before creating the new instance in the destination.
+                    The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
+    migration-type: Must be 'bulk', 'list', or a 'single' - Bulk migrates all VMs in a project, list will prompt for a text file listing, and single will take a VM name.
 
 ### Migration Type
 This script enables migration using 3 strategies:
@@ -27,6 +29,10 @@ This script enables migration using 3 strategies:
 ```
 ./gce-migrate.sh sourceproject1 destproject1 default single myvm1
    - This will migrate the VM "myvm1" from sourceproject1 to destproject1 using the default VPC network
+
+./gce-migrate.sh sourceproject1 destproject1 static single myvm1
+   - This will migrate the VM "myvm1" from sourceproject1 to destproject1, keeping myvm1's private IP address
+   - This requires the VM's VPC network/subnet to be shared with the destination project
 
 ./gce-migrate.sh sourceproject1 destproject1 default list /path/to/myvmlist.txt
    - This will migrate all VMs listed in /path/to/myvmlist.txt from sourceproject1 to destproject1 and connec them to the default VPC network.
