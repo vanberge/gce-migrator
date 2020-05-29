@@ -13,23 +13,11 @@
 # limitations under the License.
 # Set up some functions, initialize vars
 
-SOURCEPROJECT_ID=$1
-DESTPROJECT_ID=$2
-NETWORK=$3
-METHOD=$4
-WORKITEM=$5
 COUNT=0
 ERROR=0
 ERRORMSG="OK"
 
-#Unset the arg vars now since we dont need them, we can pass args to functions then
-unset -f $1
-unset -f $2
-unset -f $3
-unset -f $4
-unset -f $5
-
-# Error out if needed
+# Error out function to call if needed
 ERROR_OUT() {
     if [ $ERROR -ne 0 ]; then
         echo $ERRORMSG
@@ -39,19 +27,38 @@ ERROR_OUT() {
     fi
 }
 
-# Shows the help and instructions if errors are found
+# Arguments and switches input
+if [[ ${#} -eq 0 ]]; then
+    ERROR_OUT
+else
+    while getopts ":s:d:n:m:S" OPTION; do
+        case $OPTION in
+            s) SOURCEPROJECT_ID=${OPTARG};;
+            d) DESTPROJECT_ID=${OPTARG};;
+            n) NETWORK=${OPTARG};;
+            m) METHOD=${OPTARG};;
+            S) SHIELDED_VM=1;;
+            \?) ERRORMSG="Unknown option: -$OPTARG";ERROR_OUT;;
+            :) ERRORMSG="Missing option argument for -$OPTARG.";ERROR_OUT;;
+            *) ERRORMSG="Unimplemented option: -$OPTARG";ERROR_OUT;;
+        esac
+    done
+fi
+
+# Shows help function and instructions if errors are found
 SHOW_HELP() {
     echo "GCE MIGRATOR HELP"
-    echo "  Use format ./gce-migrate.sh <sourceproject ID> <destproject ID> <network> <migration-type>"
+    echo "  Use format ./gce-migrate.sh -s <sourceproject ID> -d <destproject ID> -n <network> -m <migration-type>"
     echo "      <sourceproject ID>: The project ID (not the name) where VM currently lives"
     echo "      <destproject ID>: The project ID (also, not the name) where VM will reside after migration"
     echo "      <network>: The desired network for the new VM to be connected to (Must be accessible by the destination project)"
-    echo "      <migration-type>: Must be 'bulk', 'list', or a 'single' - Bulk migrates all VMs in a project, list will prompt for a text file listing, and single will request a VM name"
+    echo "                  alternatively, you may set to 'static' to retain the source VM IP address, but the VPC must be accessbile from the destination project"
+    echo "      <migration-type>: Must be 'bulk', or a VM name - Bulk migrates all VMs in a project, and VM name will migrate that one VM"
     echo " "
-    echo " Examples:"
-    echo "   ./gce-migrate.sh sourceproject1 destproject1 default single myvm1"    
-    echo "   ./gce-migrate.sh sourceproject1 destproject1 default list /path/to/myvmlist.txt"
-    echo "   ./gce-migrate.sh sourceproject1 destproject1 default bulk"
+    echo "  Examples:"
+    echo "      ./gce-migrate.sh -s sourceproject1 -d destproject1 -n default -m myvm1"    
+    echo "      ./gce-migrate.sh -s sourceproject1 -d destproject1 -n static -m myvm1 -S"
+    echo "      ./gce-migrate.sh -s sourceproject1 -d destproject1 -n default -m bulk"
 }
 
 # Make sure the user entered the correct # of args.  Merge into one function to do all validation in one function
@@ -108,39 +115,23 @@ CHECK_NETWORK() {
 # Make sure the user has picked a valid migration method - bulk, list, or single
 CHECK_METHOD() {
     case $METHOD in
-        bulk)
+        bulk) #If bulk, we set our "COMMAND" to list all VMs in the project to loop through
             COMMAND() {
                 gcloud compute instances list --project $SOURCEPROJECT_ID | grep -w -v NAME | awk ' { print $1 } '
             }
             ;;
-        list)
-            echo "Enter the full path to the list of GCE instances to migrate"
-            echo "Checking to make sure $WORKITEM exists..."
-            test -f $WORKITEM
-                if [ $? -ne 0 ]; then
-                    ERROR=1 
-                    ERRORMSG="unable to find or access $WORKITEM"
-                    ERROR_OUT
-                fi
-                COMMAND() {
-                    cat $WORKITEM    
-                }
-            ;;
-        single)
-        VMCHECK=$(gcloud compute instances list --filter="name=( '$WORKITEM' )" | grep -w "$WORKITEM" | awk '{ print $1 }')
+        *)  # If not bulk, we assume it is  a single VM name and proceed accordingly
+            WORKITEM=$METHOD #janky way to do this, maybe future update 
+            VMCHECK=$(gcloud compute instances list --filter="name=( '$WORKITEM' )" | grep -w "$WORKITEM" | awk '{ print $1 }')
             if [[ -z "$VMCHECK" ]]; then
                 ERROR=1
                 ERRORMSG="Unable to find VM $WORKITEM" 
                 ERROR_OUT
             fi 
-            COMMAND() {
+            echo "Using single VM mode.  VM $WORKITEM will be migrated..."
+            COMMAND() { # Set our command to echo the single VM name 
                 echo $WORKITEM
             }
-            ;;
-        *)
-            ERROR=1
-            ERRORMSG="ERRORS FOUND IN ARGUMENTS - Invalid migration type '$METHOD' selected. Use bulk, list, or single"
-            ERROR_OUT
             ;;
     esac     
 }
@@ -163,79 +154,82 @@ DESTPROJECT_Name=$(gcloud projects describe $DESTPROJECT_ID | grep 'name: ' | aw
 echo "Checking if we are already in this project..."
 CURRENTPROJECT=$(gcloud config list project | grep project | awk ' { print $3 } ')
 if [ "$CURRENTPROJECT" != "$SOURCEPROJECT_ID" ]; then
-   gcloud config set project $SOURCEPROJECT_ID
-     if [ $? -ne 0 ]; then
-       echo "Could not set project to $SOURCEPROJECT_ID, exiting"
-       ERROR_OUT
-       exit
-     fi
-   else
-      echo "Already in $SOURCEPROJECT_ID, continuing!"
+    gcloud config set project $SOURCEPROJECT_ID
+    if [ $? -ne 0 ]; then
+        echo "Could not set project to $SOURCEPROJECT_ID, exiting"
+        ERROR_OUT
+        exit
+    fi
+    else
+        echo "Already in $SOURCEPROJECT_ID, continuing!"
 fi
 
 # Make sure default CE Service account exists, add its perms to machine image use
 echo "Looking for GCE service account in destination project..."
 DESTPROJECT_SVCACCT=$(gcloud iam service-accounts list --project $DESTPROJECT_ID --filter="NAME=( 'Compute Engine default service account' )" | grep "Compute" | awk -F "  " '{ print $2 }') 
 if [[ "$DESTPROJECT_SVCACCT" == *"gserviceaccount.com"* ]]; then
-  echo "Found service account!"
-  echo "Service account value is $DESTPROJECT_SVCACCT"
+    echo "Found service account!"
+    echo "Service account value is $DESTPROJECT_SVCACCT"
 
-  else 
-    echo "cannot find service account, exiting"
-    exit
+    else 
+        echo "cannot find service account, exiting"
+        exit
 fi
 echo "Granting access to use compute images for destination project service Account..."
 gcloud projects add-iam-policy-binding $SOURCEPROJECT_ID --member serviceAccount:$DESTPROJECT_SVCACCT --role roles/compute.imageUser
-  if [ $? -ne 0 ]; then
-    echo "Could not set permissions for $DESTPROJECT_SVCACCT, exiting"
-    exit 
-  fi
+    if [ $? -ne 0 ]; then
+        echo "Could not set permissions for $DESTPROJECT_SVCACCT, exiting"
+        exit 
+    fi
 
 # Checks are complete, now starting the migration process
 echo "Reading list of VMs to migrate"
 COMMAND | while read VM  # Use COMMAND function set in menu above
 do
-   # Get the region and zone of the instance
-   echo "Currently working on $VM"
-   echo "Getting Zone for $VM..."
-   ZONE=$(gcloud compute instances list --filter="name=( '$VM' )" | grep -w $VM | awk '{ print $2 }')
-   echo "$VM Zone is in $ZONE" 
-   REGION=${ZONE::-2}
-   echo "$VM region is $REGION"
+    # Get the region and zone of the instance
+    echo "Currently working on $VM"
+    echo "Getting Zone for $VM..."
+    ZONE=$(gcloud compute instances list --filter="name=( '$VM' )" | grep -w $VM | awk '{ print $2 }')
+    echo "$VM Zone is in $ZONE" 
+    REGION=${ZONE::-2}
+    echo "$VM region is $REGION"
    
-   # Get IP information to reuse later 
-   echo "Getting current IP address information for $VM"
-   IP=$(gcloud compute instances describe $VM --zone $ZONE | grep "networkIP" | awk '{ print $2 }')
-   SUBNET=$(gcloud compute instances describe $VM --zone $ZONE | grep -o "subnetworks/.*" | awk 'BEGIN { FS = "/" } ; { print $2 }')
-   SUBNETPATH=$(gcloud compute instances describe $VM --zone $ZONE | grep subnet | grep -o "projects/.*")
-   echo "IP address info is $IP, subnet is $SUBNET"
+    # Get IP information to reuse later 
+    echo "Getting current IP address information for $VM"
+    IP=$(gcloud compute instances describe $VM --zone $ZONE | grep "networkIP" | awk '{ print $2 }')
+    SUBNET=$(gcloud compute instances describe $VM --zone $ZONE | grep -o "subnetworks/.*" | awk 'BEGIN { FS = "/" } ; { print $2 }')
+    SUBNETPATH=$(gcloud compute instances describe $VM --zone $ZONE | grep subnet | grep -o "projects/.*")
+    echo "IP address info is $IP, subnet is $SUBNET"
 
-   echo "Stopping instance $VM for quiesced image..."
-   gcloud compute instances stop $VM --zone $ZONE
-     if [ $? -ne 0 ]; then
-       echo "failed to cleanly stop VM instance $VM, exiting"
-       exit
-     fi
-   echo "Enabling VM Shielding options for $VM..."
-   gcloud compute instances update $VM --shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --zone $ZONE
+    echo "Stopping instance $VM for quiesced image..."
+    gcloud compute instances stop $VM --zone $ZONE
+    if [ $? -ne 0 ]; then
+        echo "failed to cleanly stop VM instance $VM, exiting"
+        exit
+    fi
 
-   echo "Creating machine image of source VM $VM..."
-   gcloud beta compute machine-images create $VM-gcemigr \
+    if [ $SHIELDED_VM -ne 0 ]; then
+        echo "-S detected, enabling VM Shielding options for $VM..."
+        gcloud compute instances update $VM --shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --zone $ZONE
+    fi
+
+    echo "Creating machine image of source VM $VM..."
+    gcloud beta compute machine-images create $VM-gcemigr \
     --source-instance $VM \
     --source-instance-zone=$ZONE
-     if [ $? -ne 0 ]; then
-       echo "Could not save machine image of $VM, does it already exist? Exiting..."
-       exit
-     fi
+    if [ $? -ne 0 ]; then
+        echo "Could not save machine image of $VM, does it already exist? Exiting..."
+        exit
+    fi
       
-   echo "Now creating VM based on new image..."
-   CREATE_COMMAND
-     if [ $? -ne 0 ]; then
+    echo "Now creating VM based on new image..."
+    CREATE_COMMAND
+    if [ $? -ne 0 ]; then
         echo "ERROR: Could not create new instance of $VM in $DESTPROJECT_ID"
         ERROR=1
         ERRORMSG="Could not create 1 or more VMs, please review output for errors!"
-     fi
-   echo "Completed migration of $VM"
+    fi
+    echo "Completed migration of $VM"
 done
 
 #Done, so check error level and error out if so
