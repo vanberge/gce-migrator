@@ -4,20 +4,23 @@ GCE migrator is a script developed to help "migrate" compute instances to a new 
 
 ## Getting Started
 
-Make sure you know the source project, destination project, and which network you would like to attach to.  In the case of using a shared VPC, just recognize that there will be 2 VM instances and that a cleanup should be performed on the source once destination is completed.
+* Make sure you know the source project id, destination project id , and which network you would like to attach to.  
+* If you intend to keep the source VM IP address, the VPC network must be shared between the two projects.
+* Keeping the same IP address will require the **source VM to be removed** after taking a machine image.  The script will walk you through this.
+* If not using the same IP (IE, attaching to a new VPC network at the destination), recognize that there will be 2 VM instances and that a cleanup should be performed on the source once destination is completed.
 
 
 ## Usage 
-Clone the repository, and make sure you install the Google cloud SDK (or, run the script from CloudShell).
+Clone the repository, and make sure you install the Google cloud SDK (or, just run the script from CloudShell).
 If running outside of cloud shell, authenticate by running "gcloud auth login" 
 
 Use format ./gce-migrate.sh <sourceproject ID> <destproject ID> <network> <migration-type>
-    sourceproject id: The project where VM currently lives
-    destproject id: The project where VM will reside after migration
-    network: The desired network for the new VM to be connected to (Must be accessible by the destination project).  Alternatively, use "static" to keep the source VMs IP info (which requires a shared VPC)
-             NOTE:  setting the network "static" means that you have to delete the source VM before creating the new instance in the destination.
-                    The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
-    migration-type: Must be 'bulk', 'list', or a 'single' - Bulk migrates all VMs in a project, list will prompt for a text file listing, and single will take a VM name.
+    **sourceproject id**: The project where VM currently lives
+    **destproject id**: The project where VM will reside after migration
+    **network**: The desired network for the new VM to be connected to (Must be accessible by the destination project).  Alternatively, use "static" to keep the source VMs IP info (which requires a shared VPC)
+                NOTE:  Setting the network "static" means that you have to delete the source VM before creating the new instance in the destination.
+                       The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
+    **migration-type**: Must be 'bulk', 'list', or a 'single' - Bulk migrates all VMs in a project, list will prompt for a text file listing, and single will take a VM name.
 
 ### Migration Type
 This script enables migration using 3 strategies:
@@ -54,4 +57,3 @@ Once functionality is validated at the destination, these items should be cleane
 ### License
 
 This project is licensed under the Apache 2 License - see the [LICENSE.md](LICENSE.md) file for details
-
