@@ -23,12 +23,12 @@ Clone the repository, and make sure you install the Google cloud SDK (or, just r
 If running outside of cloud shell, authenticate by running "gcloud auth login" 
 
 Use format ./gce-migrate.sh <sourceproject ID> <destproject ID> <network> <migration-type>
-    **sourceproject id**: The project where VM currently lives
-    **destproject id**: The project where VM will reside after migration
-    **network**: The desired network for the new VM to be connected to (Must be accessible by the destination project).  Alternatively, use "static" to keep the source VMs IP info (which requires a shared VPC)
-                NOTE:  Setting the network "static" means that you have to delete the source VM before creating the new instance in the destination.
-                       The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
-    **migration-type**: Must be 'bulk', 'list', or a 'single' - Bulk migrates all VMs in a project, list will prompt for a text file listing, and single will take a VM name.
+* **sourceproject id**: The project where VM currently lives
+* **destproject id**: The project where VM will reside after migration
+* **network**: The desired network for the new VM to be connected to (Must be accessible by the destination project).  Alternatively, use "static" to keep the source VMs IP info (which requires a shared VPC)
+    NOTE:  Setting the network "static" means that you have to delete the source VM before creating the new instance in the destination.
+    The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
+* **migration-type**: Must be 'bulk', 'list', or a 'single' - Bulk migrates all VMs in a project, list will prompt for a text file listing, and single will take a VM name.
 
 ### Migration Type
 
