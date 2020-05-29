@@ -216,6 +216,8 @@ do
        echo "failed to cleanly stop VM instance $VM, exiting"
        exit
      fi
+   echo "Enabling VM Shielding options for $VM..."
+   gcloud compute instances update $VM --shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --zone $ZONE
 
    echo "Creating machine image of source VM $VM..."
    gcloud beta compute machine-images create $VM-gcemigr \
