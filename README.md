@@ -27,14 +27,14 @@ Use format ./gce-migrate.sh -s <sourceproject ID> -d <destproject ID> -n <networ
 ### Required options
 * **-s <sourceproject id>**: The project ID where VM currently lives
 * **-d <destproject id>**: The project ID where VM will reside after migration
-* **-n <network>**: The desired network for the new VM to be connected to (Must be accessible by the destination project).  
-    * Alternatively, use "static" as the option to keep the source VMs IP info (which requires a shared VPC)
-    * **NOTE**:  Setting the network "static" means that you have to delete the source VM before creating the new instance in the destination.
-    * The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
-* **-m <migration>**: Must pass "bulk", "list", or a single VM name.
+* **-n <network>**: The destination network that the new instance of the VM will be connected to.
+    * network name - If passing network name, the VM will be connected to the network specified with the next available IP address
+    * "static" - If passing 'static', the script will retain the IP address of the VM
+    * **NOTE**:  Setting the network 'static' will require the deletion of the source VM before creating the new instance in the destination project.  The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
+* **-m <migration>**: Must pass "bulk", or a single VM name.
     * bulk - use the "bulk" argument to migrate all GCE instances in the source project into the destination project and network.
-    * list - use "list" and the script will prompt for a text file </path/to/vms.txt> listing of GCE instance names to migrate.
     * Single VM - Pass "-m vmname" arguments to migrate a single GCE instance
+    
 ### Optional parameters
 * -S:  enable Secure/Shielded VM as part of the conversion.  Only needed if source is NOT shielded, and you wish the destination to be shielded
 
@@ -47,12 +47,13 @@ Use format ./gce-migrate.sh -s <sourceproject ID> -d <destproject ID> -n <networ
    - This will migrate the VM "myvm1" from sourceproject1 to destproject1, keeping myvm1's private IP address
    - As noted above, this requires the VM's VPC network/subnet to be shared with the destination project
 
-./gce-migrate.sh -s sourceproject1 -d destproject1 -n default -m list 
-   - This will prompt for a text file list </path/to/myvmlist.txt> 
-   - Once entered, all VMs listed in /path/to/myvmlist.txt from sourceproject1 to destproject1 and connect them to the default VPC network.
+./gce-migrate.sh -s sourceproject1 -d destproject1 -n default -m bulk 
+   - Migrates all VMs in sourceproject1 to destproject
+   - Attaches the VMs to the default network
 
-./gce-migrate.sh -s sourceproject1 -d destproject1 -n default -m bulk
+./gce-migrate.sh -s sourceproject1 -d destproject1 -n default -m bulk -S
    - This will migrate all VM instances in sourceproject1 to destproject1, connecting to the default VPC network.
+   - Enables shielded VM options on the VM as part of the migration
 ```
 
 ## Cleanup
