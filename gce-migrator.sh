@@ -146,10 +146,6 @@ CHECK_METHOD
 # Now we can start!
 echo "Validated command arguments... Beginning using method $METHOD"
 
-# Get Project Names - do I even need this, idk
-SOURCEPROJECT_Name=$(gcloud projects describe $SOURCEPROJECT_ID | grep 'name: ' | awk '{ print $2 }')
-DESTPROJECT_Name=$(gcloud projects describe $DESTPROJECT_ID | grep 'name: ' | awk '{ print $2 }')
-
 # Make sure that we are in the source project.  If not, go into it
 echo "Checking if we are already in this project..."
 CURRENTPROJECT=$(gcloud config list project | grep project | awk ' { print $3 } ')
