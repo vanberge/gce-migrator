@@ -37,7 +37,7 @@ else
             d) DESTPROJECT_ID=${OPTARG};;
             n) NETWORK=${OPTARG};;
             m) METHOD=${OPTARG};;
-            S) SHIELDED_VM=1;;
+            S) SHIELDED_VM="1";;
             \?) ERRORMSG="Unknown option: -$OPTARG";ERROR_OUT;;
             :) ERRORMSG="Missing option argument for -$OPTARG.";ERROR_OUT;;
             *) ERRORMSG="Unimplemented option: -$OPTARG";ERROR_OUT;;
@@ -114,6 +114,19 @@ CHECK_NETWORK() {
 
 # Make sure the user has picked a valid migration method - bulk, list, or single
 CHECK_METHOD() {
+    # Make sure that we are in the source project.  If not, go into it
+    echo "Checking if we are already in this project..."
+    CURRENTPROJECT=$(gcloud config list project | grep project | awk ' { print $3 } ')
+    if [ "$CURRENTPROJECT" != "$SOURCEPROJECT_ID" ]; then
+        gcloud config set project $SOURCEPROJECT_ID
+        if [ $? -ne 0 ]; then
+            echo "Could not set project to $SOURCEPROJECT_ID, exiting"
+            ERROR_OUT
+            exit
+        fi
+        else
+            echo "Already in $SOURCEPROJECT_ID, continuing!"
+    fi
     case $METHOD in
         bulk) #If bulk, we set our "COMMAND" to list all VMs in the project to loop through
             COMMAND() {
@@ -145,20 +158,6 @@ CHECK_METHOD
 
 # Now we can start!
 echo "Validated command arguments... Beginning using method $METHOD"
-
-# Make sure that we are in the source project.  If not, go into it
-echo "Checking if we are already in this project..."
-CURRENTPROJECT=$(gcloud config list project | grep project | awk ' { print $3 } ')
-if [ "$CURRENTPROJECT" != "$SOURCEPROJECT_ID" ]; then
-    gcloud config set project $SOURCEPROJECT_ID
-    if [ $? -ne 0 ]; then
-        echo "Could not set project to $SOURCEPROJECT_ID, exiting"
-        ERROR_OUT
-        exit
-    fi
-    else
-        echo "Already in $SOURCEPROJECT_ID, continuing!"
-fi
 
 # Make sure default CE Service account exists, add its perms to machine image use
 echo "Looking for GCE service account in destination project..."
@@ -204,7 +203,7 @@ do
         exit
     fi
 
-    if [ $SHIELDED_VM -ne 0 ]; then
+    if [ "$SHIELDED_VM" == "1" ]; then
         echo "-S detected, enabling VM Shielding options for $VM..."
         gcloud compute instances update $VM --shielded-secure-boot --shielded-vtpm --shielded-integrity-monitoring --zone $ZONE
     fi
