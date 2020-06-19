@@ -11,8 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Set up some functions, initialize vars
 
+# Set up some functions, initialize vars
 COUNT=0
 ERROR=0
 ERRORMSG="OK"
@@ -87,7 +87,7 @@ CHECK_NETWORK() {
         static) #If shared, we create the VM in the dest project, but simply have to map the subnet found in the host project shared network
             echo "Static network option, will keep $VM private IP address"
             CREATE_COMMAND() {
-                    read -p "Now, delete the source VM - When done, press Enter to continue" </dev/tty
+                    read -p "Now, delete the source VM $VM in project $SOURCEPROJECT_ID - When done, press Enter to continue" </dev/tty
                     gcloud beta compute instances create $VM \
                     --source-machine-image projects/$SOURCEPROJECT_ID/global/machineImages/$VM-gcemigr \
                     --service-account=$DESTPROJECT_SVCACCT --zone $ZONE --project $DESTPROJECT_ID --subnet $SUBNETPATH \
