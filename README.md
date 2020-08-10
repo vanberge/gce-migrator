@@ -31,12 +31,12 @@ This cannot be stressed enough.
 * **-s `<sourceproject id>`**: The project ID where VM currently lives
 * **-d `<destproject id>`**: The project ID where VM will reside after migration
 * **-n `<network>`**: The destination network that the new instance of the VM will be connected to. Values are the name of the destination network, or "static" to keep the existing IP.
-    * network name - If passing network name, the VM will be connected to the network specified with the next available IP address.
-    * static - If passing 'static', the script will retain the IP address of the VM instance.
-    * **NOTE**:  Setting the network 'static' will require the deletion of the source VM before creating the new instance in the destination project.  The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
+    - network name: If passing network name, the VM will be connected to the network specified with the next available IP address.
+    - static: If passing 'static', the script will retain the IP address of the VM instance.
+    - **NOTE**:  Setting the network 'static' will require the deletion of the source VM before creating the new instance in the destination project.  The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
 * **-m `<migration>`**: Must pass a single VM name, or "bulk".
-    * bulk - use the "bulk" argument to migrate all GCE instances in the source project into the destination project and network.
-    * Single VM - Pass "-m vmname" arguments to migrate a single GCE instance
+    - bulk - use the "bulk" argument to migrate all GCE instances in the source project into the destination project and network.
+    - Single VM - Pass "-m vmname" arguments to migrate a single GCE instance
     
 ### Optional parameters
 * **-S:**  enable Secure/Shielded VM as part of the conversion.  Only needed if source is NOT shielded, and you wish the destination to be shielded.
