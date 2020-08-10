@@ -24,16 +24,17 @@ This cannot be stressed enough.
    * If running outside of cloud shell, authenticate by running "gcloud auth login" 
 * Clone the repository: "git clone https://github.com/vanberge/gce-migrator.git"
 * Change directory into the gce-migrator folder and run the script per the usage options below
-* Use format:  ./gce-migrate.sh -s <sourceproject ID> -d <destproject ID> -n <network> -m <migration-type> -S <optional>
+* Use format:  
+   - `./gce-migrate.sh -s <sourceproject ID> -d <destproject ID> -n <network> -m <migration-type> -S <optional>`
 
 ### Required options
-* **-s <sourceproject id>**: The project ID where VM currently lives
-* **-d <destproject id>**: The project ID where VM will reside after migration
-* **-n <network>**: The destination network that the new instance of the VM will be connected to. Values are the name of the destination network, or "static" to keep the existing IP.
+* **-s `<sourceproject id>`**: The project ID where VM currently lives
+* **-d `<destproject id>`**: The project ID where VM will reside after migration
+* **-n `<network>`**: The destination network that the new instance of the VM will be connected to. Values are the name of the destination network, or "static" to keep the existing IP.
     * network name - If passing network name, the VM will be connected to the network specified with the next available IP address.
     * static - If passing 'static', the script will retain the IP address of the VM instance.
     * **NOTE**:  Setting the network 'static' will require the deletion of the source VM before creating the new instance in the destination project.  The script will prompt you to do this, but you MUST Have a backup and recovery scenario in the even this does not work.
-* **-m <migration>**: Must pass a single VM name, or "bulk".
+* **-m `<migration>`**: Must pass a single VM name, or "bulk".
     * bulk - use the "bulk" argument to migrate all GCE instances in the source project into the destination project and network.
     * Single VM - Pass "-m vmname" arguments to migrate a single GCE instance
     
