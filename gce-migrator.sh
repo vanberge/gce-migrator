@@ -161,7 +161,7 @@ echo "Validated command arguments... Beginning using method $METHOD"
 
 # Make sure default CE Service account exists, add its perms to machine image use
 echo "Looking for GCE service account in destination project..."
-DESTPROJECT_SVCACCT=$(gcloud iam service-accounts list --project $DESTPROJECT_ID --filter="NAME=( 'Compute Engine default service account' )" | grep "Compute" | awk -F "  " '{ print $2 }') 
+DESTPROJECT_SVCACCT=$(gcloud iam service-accounts list --project $DESTPROJECT_ID --filter="displayName=( 'Compute Engine default service account' )" | grep "Compute" | awk -F "  " '{ print $2 }') 
 if [[ "$DESTPROJECT_SVCACCT" == *"gserviceaccount.com"* ]]; then
     echo "Found service account!"
     echo "Service account value is $DESTPROJECT_SVCACCT"
